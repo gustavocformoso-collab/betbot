@@ -502,21 +502,20 @@ function generateCombinations() {
   const allCombos = nonancs.length<=7 ? gen(nonancs.length) : Array.from({length:700},()=>Array.from({length:nonancs.length},()=>RES[Math.floor(Math.random()*3)]));
 
   // Helper: monta a sequência completa do combo.
-  // anchorResults = array com um resultado por jogo âncora (na ordem em que aparecem em `used`)
-  function buildFull(c, anchorResults) {
-    let ai = 0;
+  // anchorOverrides = objeto {gameId: resultado} para sobrescrever âncoras; se null usa anchorResult do jogo
+  function buildFull(c, anchorOverrides) {
     return used.map(g => {
-      if (g.anchor) return anchorResults[ai++];
+      if (g.anchor) {
+        if (anchorOverrides && anchorOverrides[g.id] !== undefined) return anchorOverrides[g.id];
+        return g.anchorResult; // usa o resultado escolhido pelo usuário para este âncora
+      }
       return c[nonancs.indexOf(g)];
     });
   }
 
-  // Resultados fixos escolhidos pelo usuário para cada âncora
-  const fixedUserRes = ancs.map(g => g.anchorResult);
-
-  // === MÚLTIPLAS 1-3: todos os âncoras FIXOS no resultado escolhido pelo usuário ===
+  // === MÚLTIPLAS 1-3: todos os âncoras FIXOS no resultado individual escolhido pelo usuário ===
   const fixedCandidates = allCombos.map(c => {
-    const full = buildFull(c, fixedUserRes);
+    const full = buildFull(c, null); // null = cada âncora usa seu próprio anchorResult
     const prob = combProb(full, used);
     const odd = combOdd(full, used);
     return {c, full, prob, odd, ev: prob*odd, used, anchorFixed: true};
@@ -535,21 +534,23 @@ function generateCombinations() {
 
   // === MÚLTIPLAS 4-5: cada âncora varia independentemente ===
   // Para cada âncora, as alternativas são os outros 2 resultados além do fixo pelo usuário.
-  // Geramos combinações de resultados alternativos por âncora (produto cartesiano simplificado).
+  // Produto cartesiano: cada âncora pode ter qualquer resultado alternativo independentemente.
   function altFor(res) { return RES.filter(r => r !== res); }
-
-  // Gera todas as variações de resultados alternativos para o conjunto de âncoras
-  // Ex: 2 âncoras [V, D] → alts = [[E,D],[V,E]] → produto: [E,V],[E,E],[D,V],[D,E]
   function cartesian(arrays) {
     return arrays.reduce((acc, arr) => acc.flatMap(a => arr.map(b => [...a, b])), [[]]);
   }
+  // Para cada âncora: quais resultados alternativos são possíveis?
   const ancAltOptions = ancs.map(g => altFor(g.anchorResult));
-  const ancAltCombos = cartesian(ancAltOptions); // array de arrays de resultados por âncora
+  // Todas as combinações de resultados alternativos (ex: Bota=D,Flu=V → alts: [E,V],[V,V],[E,E],[V,E]...)
+  const ancAltCombos = cartesian(ancAltOptions);
 
   const freeCandidates = [];
   for (const ancResArr of ancAltCombos) {
+    // Monta override por id do jogo
+    const overrides = {};
+    ancs.forEach((g, idx) => { overrides[g.id] = ancResArr[idx]; });
     for (const c of allCombos) {
-      const full = buildFull(c, ancResArr);
+      const full = buildFull(c, overrides);
       const prob = combProb(full, used);
       const odd = combOdd(full, used);
       freeCandidates.push({c, full, prob, odd, ev: prob*odd, used, anchorFixed: false});
