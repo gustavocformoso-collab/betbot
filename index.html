@@ -501,17 +501,22 @@ function generateCombinations() {
   // Generate all non-anchor combos
   const allCombos = nonancs.length<=7 ? gen(nonancs.length) : Array.from({length:700},()=>Array.from({length:nonancs.length},()=>RES[Math.floor(Math.random()*3)]));
 
-  // Helper: build full sequence for a combo, with anchor fixed or free
-  function buildFull(c, forceAnchorResult) {
+  // Helper: build full sequence.
+  // anchorResults = array with one result per anchor game (in order they appear in `used`)
+  function buildFull(c, anchorResults) {
+    let ai = 0;
     return used.map(g => {
-      if (g.anchor) return forceAnchorResult !== null ? forceAnchorResult : c[nonancs.indexOf(g)] ?? RES[Math.floor(Math.random()*3)];
+      if (g.anchor) return anchorResults[ai++];
       return c[nonancs.indexOf(g)];
     });
   }
 
-  // === MULTIPLES 1-3: anchor FIXED to user-chosen result ===
+  // Results chosen by user for each anchor game
+  const fixedUserRes = ancs.map(g => g.anchorResult);
+
+  // === MÚLTIPLAS 1-3: âncora FIXO no resultado escolhido pelo usuário ===
   const fixedCandidates = allCombos.map(c => {
-    const full = buildFull(c, ancs.length ? ancs[0].anchorResult : null);
+    const full = buildFull(c, fixedUserRes);
     const prob = combProb(full, used);
     const odd = combOdd(full, used);
     return {c, full, prob, odd, ev: prob*odd, used, anchorFixed: true};
@@ -528,16 +533,20 @@ function generateCombinations() {
     if (!chosen.includes(cand)) chosen.push(cand);
   }
 
-  // === MULTIPLES 4-5: anchor FREE (varies across V/E/D) ===
+  // === MÚLTIPLAS 4-5: âncora LIVRE — resultados diferentes do fixo ===
+  // Alternate results: the other two outcomes not chosen by user
+  const altResults = RES.filter(r => !fixedUserRes.includes(r));
+  // If all 3 are used as anchors (unlikely), just use all 3
+  const freeVariants = altResults.length ? altResults : RES;
+
   const freeCandidates = [];
-  for (const ancRes of RES) {
+  for (let vi = 0; vi < freeVariants.length; vi++) {
+    const freeAncRes = ancs.map(() => freeVariants[vi]); // same alt result for all anchors
     for (const c of allCombos) {
-      const full = buildFull(c, ancRes);
-      // Skip if anchor result matches the fixed result (no point duplicating)
-      if (ancs.length && ancRes === ancs[0].anchorResult) continue;
+      const full = buildFull(c, freeAncRes);
       const prob = combProb(full, used);
       const odd = combOdd(full, used);
-      freeCandidates.push({c, full, prob, odd, ev: prob*odd, used, anchorFixed: false, ancRes});
+      freeCandidates.push({c, full, prob, odd, ev: prob*odd, used, anchorFixed: false, ancRes: freeVariants[vi]});
     }
   }
   freeCandidates.sort((a,b) => b.ev - a.ev);
