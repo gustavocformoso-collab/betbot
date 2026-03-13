@@ -422,14 +422,25 @@ function renderAnchorsStep() {
           <button onclick="setAnchorResult(${JSON.stringify(g.id)},'D')" style="color:var(--loss);border-color:${g.anchorResult==='D'?'var(--loss)':'var(--border)'};background:${g.anchorResult==='D'?'rgba(239,71,111,0.1)':'transparent'}">✗ DERROTA</button>
         </div></div>`:''}
       <div class="card-actions">
-        <label class="toggle-label use"><input type="checkbox" ${g.use?'checked':''} onchange="toggleUse(${JSON.stringify(g.id)},this.checked)"><div class="toggle-dot"></div><span>☑ Usar</span></label>
-        <label class="toggle-label anc"><input type="checkbox" ${g.anchor?'checked':''} onchange="toggleAnchor(${JSON.stringify(g.id)},this.checked)"><div class="toggle-dot"></div><span>⚓ Âncora</span></label>
+        <button onclick="toggleUse(${JSON.stringify(g.id)})" id="use-btn-${g.id}" style="padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid ${g.use?'var(--accent)':'var(--border)'};background:${g.use?'rgba(0,229,160,0.12)':'transparent'};color:${g.use?'var(--accent)':'var(--muted)'}">${g.use?'✅ Usando':'⬜ Ignorar'}</button>
+        <button onclick="toggleAnchor(${JSON.stringify(g.id)})" style="padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid ${g.anchor?'var(--accent2)':'var(--border)'};background:${g.anchor?'rgba(255,107,53,0.12)':'transparent'};color:${g.anchor?'var(--accent2)':'var(--muted)'}">${g.anchor?'⚓ Âncora ON':'⚓ Âncora'}</button>
       </div>
     </div>`).join('');
 }
 
-function toggleUse(id,v){const g=games.find(g=>g.id===id);if(g){g.use=v;renderAnchorsStep();}}
-function toggleAnchor(id,v){const g=games.find(g=>g.id===id);if(g){g.anchor=v;renderAnchorsStep();}}
+function toggleUse(id){
+  const g=games.find(g=>g.id===id); if(!g) return;
+  g.use=!g.use;
+  const btn=document.getElementById('use-btn-'+id);
+  if(btn){btn.style.borderColor=g.use?'var(--accent)':'var(--border)';btn.style.background=g.use?'rgba(0,229,160,0.12)':'transparent';btn.style.color=g.use?'var(--accent)':'var(--muted)';btn.textContent=g.use?'✅ Usando':'⬜ Ignorar';}
+  const card=btn&&btn.closest('.game-card');
+  if(card)card.style.opacity=g.use?'1':'0.4';
+}
+function toggleAnchor(id){
+  const g=games.find(g=>g.id===id); if(!g) return;
+  g.anchor=!g.anchor;
+  renderAnchorsStep();
+}
 function setAnchorResult(id,r){const g=games.find(g=>g.id===id);if(g){g.anchorResult=r;renderAnchorsStep();}}
 
 // ── MATH ENGINE ──────────────────────────────────────
