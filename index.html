@@ -290,14 +290,37 @@ async function loadFromOddsAPI() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data)||!data.length) { showStatus('error','Nenhum jogo retornado pela Odds API.'); return false; }
-    games = data.map(ev => {
+
+    // Encontra a data do próximo jogo
+    const now = new Date();
+    const sorted = [...data].sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
+    const nextGame = sorted.find(ev => new Date(ev.commence_time) > now);
+    if (!nextGame) { showStatus('error','Nenhum jogo futuro encontrado.'); return false; }
+
+    // Pega a data do próximo jogo e filtra todos os jogos dentro de 8 dias a partir daí
+    const nextDate = new Date(nextGame.commence_time);
+    const cutoff = new Date(nextDate);
+    cutoff.setDate(cutoff.getDate() + 8);
+
+    // Filtra só jogos entre agora e o cutoff (próxima rodada)
+    const rodadaGames = data.filter(ev => {
+      const d = new Date(ev.commence_time);
+      return d >= now && d <= cutoff;
+    });
+
+    games = rodadaGames.map(ev => {
       const o = extractAvgOdds(ev);
       return { id:ev.id, home:ev.home_team, away:ev.away_team,
         date: new Date(ev.commence_time).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
         oddV:o.home.toFixed(2), oddE:o.draw.toFixed(2), oddD:o.away.toFixed(2),
         bookmakers:ev.bookmakers.map(b=>b.title), anchor:false, anchorResult:'V', use:true };
     });
-    document.getElementById('rodadaBadge').textContent = `${games.length} jogos`;
+
+    // Detecta o intervalo de datas da rodada
+    const datas = rodadaGames.map(ev => new Date(ev.commence_time));
+    const inicio = new Date(Math.min(...datas)).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    const fim = new Date(Math.max(...datas)).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    document.getElementById('rodadaBadge').textContent = `${games.length} jogos · ${inicio} a ${fim}`;
     return true;
   } catch(e) { showStatus('error',`Erro Odds API: ${e.message}`); return false; }
 }
