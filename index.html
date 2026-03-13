@@ -403,44 +403,86 @@ function updateGame(id,f,v){const g=games.find(g=>g.id===id);if(g)g[f]=v;}
 
 // ── STEP 2 ───────────────────────────────────────────
 function renderAnchorsStep() {
-  document.getElementById('anchorsGamesList').innerHTML = games.map((g,i) => {
-    const anchorBtns = g.anchor ? `
-      <div style="margin-top:10px">
-        <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Resultado fixo:</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="setAnchorResult(${i},'V')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='V'?'var(--win)':'var(--border)'};background:${g.anchorResult==='V'?'rgba(0,229,160,0.15)':'transparent'};color:var(--win)">✓ VITÓRIA</button>
-          <button onclick="setAnchorResult(${i},'E')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='E'?'var(--draw)':'var(--border)'};background:${g.anchorResult==='E'?'rgba(255,209,102,0.15)':'transparent'};color:var(--draw)">= EMPATE</button>
-          <button onclick="setAnchorResult(${i},'D')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='D'?'var(--loss)':'var(--border)'};background:${g.anchorResult==='D'?'rgba(239,71,111,0.15)':'transparent'};color:var(--loss)">✗ DERROTA</button>
-        </div>
-      </div>` : '';
-    return `
-    <div class="game-card ${g.anchor?'anchor':''}" style="opacity:${g.use?1:.4}">
+  document.getElementById('anchorsGamesList').innerHTML = games.map((g, i) => `
+    <div id="acard-${i}" class="game-card ${g.anchor ? 'anchor' : ''}" style="opacity:${g.use ? 1 : .4};margin-bottom:10px">
       <div class="game-header">
         <span class="game-idx">#${i+1}</span>
-        <strong style="flex:1;font-size:.92rem">${g.home||'Mandante'} <span style="color:var(--muted)">vs</span> ${g.away||'Visitante'}</strong>
-        <span class="anchor-badge">⚓ ÂNCORA</span>
+        <strong style="flex:1;font-size:.92rem">${g.home || 'Mandante'} <span style="color:var(--muted)">vs</span> ${g.away || 'Visitante'}</strong>
+        ${g.anchor ? '<span class="anchor-badge">⚓ ÂNCORA</span>' : ''}
       </div>
       <div class="odds-row">
         <div class="odd-field"><label>VITÓRIA (V)</label><input type="number" step="0.01" min="1" value="${g.oddV}" placeholder="1.80" oninput="games[${i}].oddV=this.value"></div>
         <div class="odd-field"><label>EMPATE (E)</label><input type="number" step="0.01" min="1" value="${g.oddE}" placeholder="3.40" oninput="games[${i}].oddE=this.value"></div>
         <div class="odd-field"><label>DERROTA (D)</label><input type="number" step="0.01" min="1" value="${g.oddD}" placeholder="4.50" oninput="games[${i}].oddD=this.value"></div>
       </div>
-      ${anchorBtns}
+      <div id="anchor-result-${i}" style="display:${g.anchor ? 'block' : 'none'};margin-top:10px">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Resultado fixo:</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="setAnchorResult(${i},'V')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='V' ? 'var(--win)' : 'var(--border)'};background:${g.anchorResult==='V' ? 'rgba(0,229,160,0.15)' : 'transparent'};color:var(--win)">✓ VITÓRIA</button>
+          <button onclick="setAnchorResult(${i},'E')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='E' ? 'var(--draw)' : 'var(--border)'};background:${g.anchorResult==='E' ? 'rgba(255,209,102,0.15)' : 'transparent'};color:var(--draw)">= EMPATE</button>
+          <button onclick="setAnchorResult(${i},'D')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='D' ? 'var(--loss)' : 'var(--border)'};background:${g.anchorResult==='D' ? 'rgba(239,71,111,0.15)' : 'transparent'};color:var(--loss)">✗ DERROTA</button>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;margin-top:12px">
-        <button onclick="setUse(${i},${!g.use})" style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.use?'var(--accent)':'var(--border)'};background:${g.use?'rgba(0,229,160,0.12)':'transparent'};color:${g.use?'var(--accent)':'var(--muted)'}">
-          ${g.use?'✅ Usando':'⬜ Ignorar'}
+        <button id="abtn-use-${i}" onclick="setUse(${i})"
+          style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.use ? 'var(--accent)' : 'var(--border)'};background:${g.use ? 'rgba(0,229,160,0.12)' : 'transparent'};color:${g.use ? 'var(--accent)' : 'var(--muted)'}">
+          ${g.use ? '✅ Usando' : '⬜ Ignorar'}
         </button>
-        <button onclick="setAnchor(${i},${!g.anchor})" style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.anchor?'var(--accent2)':'var(--border)'};background:${g.anchor?'rgba(255,107,53,0.12)':'transparent'};color:${g.anchor?'var(--accent2)':'var(--muted)'}">
-          ${g.anchor?'⚓ Âncora ON':'⚓ Âncora'}
+        <button id="abtn-anc-${i}" onclick="setAnchor(${i})"
+          style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.anchor ? 'var(--accent2)' : 'var(--border)'};background:${g.anchor ? 'rgba(255,107,53,0.12)' : 'transparent'};color:${g.anchor ? 'var(--accent2)' : 'var(--muted)'}">
+          ${g.anchor ? '⚓ Âncora ON' : '⚓ Âncora'}
         </button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
-function setUse(i, val) { games[i].use = val; renderAnchorsStep(); }
-function setAnchor(i, val) { games[i].anchor = val; renderAnchorsStep(); }
-function setAnchorResult(i, r) { games[i].anchorResult = r; renderAnchorsStep(); }
+function setUse(i) {
+  games[i].use = !games[i].use;
+  const val = games[i].use;
+  const card = document.getElementById('acard-' + i);
+  const btn = document.getElementById('abtn-use-' + i);
+  if (card) card.style.opacity = val ? '1' : '0.4';
+  if (btn) {
+    btn.textContent = val ? '✅ Usando' : '⬜ Ignorar';
+    btn.style.borderColor = val ? 'var(--accent)' : 'var(--border)';
+    btn.style.background = val ? 'rgba(0,229,160,0.12)' : 'transparent';
+    btn.style.color = val ? 'var(--accent)' : 'var(--muted)';
+  }
+}
+function setAnchor(i) {
+  games[i].anchor = !games[i].anchor;
+  const val = games[i].anchor;
+  const card = document.getElementById('acard-' + i);
+  const btn = document.getElementById('abtn-anc-' + i);
+  if (btn) {
+    btn.textContent = val ? '⚓ Âncora ON' : '⚓ Âncora';
+    btn.style.borderColor = val ? 'var(--accent2)' : 'var(--border)';
+    btn.style.background = val ? 'rgba(255,107,53,0.12)' : 'transparent';
+    btn.style.color = val ? 'var(--accent2)' : 'var(--muted)';
+    if (card) {
+      card.className = 'game-card' + (val ? ' anchor' : '');
+      card.style.opacity = games[i].use ? '1' : '0.4';
+      // update anchor badge visibility
+      const badge = card.querySelector('.anchor-badge');
+      if (badge) badge.style.display = val ? 'inline-block' : 'none';
+    }
+  }
+  // Show/hide anchor result row
+  const resultRow = document.getElementById('anchor-result-' + i);
+  if (resultRow) resultRow.style.display = val ? 'block' : 'none';
+}
+function setAnchorResult(i, r) {
+  games[i].anchorResult = r;
+  const row = document.getElementById('anchor-result-' + i);
+  if (!row) return;
+  row.querySelectorAll('button').forEach((btn, idx) => {
+    const res = ['V','E','D'][idx];
+    const colors = {V:'var(--win)', E:'var(--draw)', D:'var(--loss)'};
+    const bgs = {V:'rgba(0,229,160,0.15)', E:'rgba(255,209,102,0.15)', D:'rgba(239,71,111,0.15)'};
+    btn.style.borderColor = r === res ? colors[res] : 'var(--border)';
+    btn.style.background = r === res ? bgs[res] : 'transparent';
+  });
+}
 
 // ── MATH ENGINE ──────────────────────────────────────
 function oddToProb(o){return(!o||o<=1)?0.33:1/parseFloat(o);}
