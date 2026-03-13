@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetBot Brasileirão</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14; --surface: #111722; --card: #161e2c; --border: #1f2d42;
+    --accent: #00e5a0; --accent2: #ff6b35; --accent3: #4e9eff;
+    --text: #e8eef7; --muted: #5a6a82; --win: #00e5a0; --draw: #ffd166; --loss: #ef476f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+  header { padding: 32px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .header-inner { display: flex; align-items: center; gap: 20px; }
+  .logo-icon { width: 48px; height: 48px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; letter-spacing: 2px; line-height: 1; }
+  h1 span { color: var(--accent); }
+  .subtitle { font-size: 0.8rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  .section-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .steps { display: flex; gap: 8px; margin-bottom: 32px; overflow-x: auto; padding-bottom: 4px; }
+  .step { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 500; color: var(--muted); white-space: nowrap; cursor: pointer; transition: all .2s; }
+  .step.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.08); }
+  .step.done { border-color: rgba(0,229,160,0.3); color: var(--accent); background: rgba(0,229,160,0.05); }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; }
+  .step.active .step-num, .step.done .step-num { background: var(--accent); color: var(--bg); }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; display: none; }
+  .panel.active { display: block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .info-box { background: rgba(78,158,255,0.05); border: 1px solid rgba(78,158,255,0.2); border-radius: 10px; padding: 14px 16px; font-size: 0.83rem; color: #8ab4d8; line-height: 1.6; margin-bottom: 20px; }
+  .info-box strong { color: var(--accent3); }
+  .api-field { margin-bottom: 16px; }
+  .api-field label { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+  .api-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 10px 14px; outline: none; transition: border-color .2s; }
+  .api-input:focus { border-color: var(--accent); }
+  .api-input::placeholder { color: var(--muted); }
+  .game-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; transition: border-color .2s; }
+  .game-card:hover { border-color: rgba(0,229,160,0.25); }
+  .game-card.anchor { border-color: rgba(255,107,53,0.5); background: rgba(255,107,53,0.04); }
+  .game-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .game-idx { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+  .anchor-badge { font-size: 0.7rem; background: rgba(255,107,53,0.15); color: var(--accent2); padding: 2px 8px; border-radius: 4px; font-weight: 600; display: none; }
+  .game-card.anchor .anchor-badge { display: inline-block; }
+  .teams-row { display: flex; align-items: center; gap: 12px; }
+  .vs-badge { font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; color: var(--muted); }
+  .team-name-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 8px 12px; outline: none; transition: border-color .2s; }
+  .team-name-input:focus { border-color: var(--accent); }
+  .team-name-input::placeholder { color: var(--muted); font-weight: 400; }
+  .odds-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .odd-field { display: flex; flex-direction: column; gap: 4px; }
+  .odd-field label { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .odd-field input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 8px 10px; outline: none; width: 100%; transition: border-color .2s; }
+  .odd-field input:focus { border-color: var(--accent); }
+  .odd-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .odd-V { background: rgba(0,229,160,0.12); color: var(--win); }
+  .odd-E { background: rgba(255,209,102,0.12); color: var(--draw); }
+  .odd-D { background: rgba(239,71,111,0.12); color: var(--loss); }
+  .bm-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .bm-tag { font-size: 0.68rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .bm-tag.active { border-color: rgba(0,229,160,0.35); color: var(--accent); background: rgba(0,229,160,0.05); }
+  .card-actions { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .toggle-label { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); cursor: pointer; user-select: none; }
+  .toggle-label input { display: none; }
+  .toggle-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); transition: all .2s; }
+  .toggle-label.use input:checked + .toggle-dot { background: var(--accent); border-color: var(--accent); }
+  .toggle-label.anc input:checked + .toggle-dot { background: var(--accent2); border-color: var(--accent2); }
+  .anchor-result-row { display: flex; gap: 8px; margin-top: 10px; }
+  .anchor-result-row button { flex: 1; padding: 7px; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 1rem; cursor: pointer; border: 1px solid var(--border); background: transparent; transition: all .15s; }
+  .btn { padding: 11px 24px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .2s; border: none; }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:hover { background: #00ffb3; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,160,0.3); }
+  .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap; }
+  .summary-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .sum-item { text-align: center; }
+  .sum-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .sum-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; }
+  .sum-val.green { color: var(--accent); }
+  .sum-val.orange { color: var(--accent2); }
+  .sum-val.blue { color: var(--accent3); }
+  .divider { width: 1px; height: 36px; background: var(--border); }
+  .combos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .combo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all .2s; }
+  .combo-card:hover { border-color: var(--accent3); transform: translateY(-2px); }
+  .combo-card.best { border-color: var(--accent); box-shadow: 0 0 20px rgba(0,229,160,0.1); }
+  .combo-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: var(--accent3); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .best-tag { font-size: 0.6rem; background: var(--accent); color: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: 1px; }
+  .combo-sequence { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+  .res-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 5px; font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; }
+  .res-V { background: rgba(0,229,160,0.15); color: var(--win); border: 1px solid rgba(0,229,160,0.3); }
+  .res-E { background: rgba(255,209,102,0.15); color: var(--draw); border: 1px solid rgba(255,209,102,0.3); }
+  .res-D { background: rgba(239,71,111,0.15); color: var(--loss); border: 1px solid rgba(239,71,111,0.3); }
+  .combo-stats { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); line-height: 1.7; }
+  .combo-stats span { color: var(--text); }
+  .prob-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .prob-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; line-height: 1; }
+  .stat-value.green { color: var(--accent); }
+  .stat-value.orange { color: var(--accent2); }
+  .stat-value.blue { color: var(--accent3); }
+  .sim-table { width: 100%; border-collapse: collapse; }
+  .sim-table th { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .sim-table td { padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid rgba(31,45,66,0.5); }
+  .sim-table tr:hover td { background: rgba(0,229,160,0.02); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 20px; font-size: 0.85rem; color: var(--accent); z-index: 999; transform: translateY(80px); opacity: 0; transition: all .3s; max-width: 320px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--loss); color: var(--loss); }
+  .rodada-badge { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: var(--accent2); letter-spacing: 1px; }
+  @media (max-width: 600px) { h1 { font-size: 1.8rem; } .panel { padding: 16px; } .combos-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-inner">
+      <div class="logo-icon">⚽</div>
+      <div>
+        <h1>BET<span>BOT</span> BRASILEIRÃO</h1>
+        <div class="subtitle">Jogos e odds em tempo real · Gerador de múltiplas inteligente</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="steps">
+    <div class="step active" data-step="0" onclick="goStep(0)"><div class="step-num">0</div> APIs</div>
+    <div class="step" data-step="1" onclick="goStep(1)"><div class="step-num">1</div> Jogos</div>
+    <div class="step" data-step="2" onclick="goStep(2)"><div class="step-num">2</div> Âncoras</div>
+    <div class="step" data-step="3" onclick="goStep(3)"><div class="step-num">3</div> Combinações</div>
+    <div class="step" data-step="4" onclick="goStep(4)"><div class="step-num">4</div> Simulação</div>
+  </div>
+
+  <!-- STEP 0 -->
+  <div class="panel active" id="step0">
+    <div class="section-label">Configurar APIs Gratuitas</div>
+    <div class="info-box">
+      Para buscar jogos e odds automaticamente você precisa de <strong>2 chaves gratuitas</strong> — nenhuma exige cartão de crédito. Ou clique em <strong>Demo</strong> para testar agora mesmo com dados da Rodada 6.
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:32px;height:32px;background:rgba(78,158,255,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center">🏟️</div>
+        <div><div style="font-weight:600">API-Football <span style="font-size:.75rem;color:var(--muted)">(RapidAPI)</span></div><div style="font-size:.73rem;color:var(--muted)">Fixtures e rodadas do Brasileirão · 100 req/dia grátis</div></div>
+        <a href="https://rapidapi.com/api-sports/api/api-football" target="_blank" style="margin-left:auto;font-size:.78rem;color:var(--accent3);text-decoration:none">→ Obter chave</a>
+      </div>
+      <div class="api-field">
+        <label>X-RapidAPI-Key</label>
+        <input class="api-input" id="apiFootballKey" type="password" placeholder="Cole sua chave aqui...">
+      </div>
+      <div style="font-size:.73rem;color:var(--muted);line-height:1.5">Cadastre em rapidapi.com → busque "API-Football" → assine o plano <strong style="color:var(--accent)">Basic Free</strong> → copie a chave em "Header Parameters"</div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:32px;height:32px;background:rgba(255,107,53,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center">📊</div>
+        <div><div style="font-weight:600">The Odds API</div><div style="font-size:.73rem;color:var(--muted)">Odds de Bet365, Betway, Pinnacle e mais · 500 req/mês grátis</div></div>
+        <a href="https://the-odds-api.com/#get-access" target="_blank" style="margin-left:auto;font-size:.78rem;color:var(--accent3);text-decoration:none">→ Obter chave</a>
+      </div>
+      <div class="api-field">
+        <label>API Key</label>
+        <input class="api-input" id="oddsApiKey" type="password" placeholder="Cole sua chave aqui...">
+      </div>
+      <div style="font-size:.73rem;color:var(--muted);line-height:1.5">Acesse the-odds-api.com → clique "Get API Key" → cadastre com email → chave enviada imediatamente, sem cartão</div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="saveKeysAndLoad()">🔌 Conectar e Buscar Rodada</button>
+      <button class="btn btn-secondary" onclick="loadDemo()">👁️ Demo (Rodada 6)</button>
+    </div>
+    <div id="apiStatus" style="margin-top:14px"></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="panel" id="step1">
+    <div class="section-label">
+      <span>Jogos da Rodada</span>
+      <span class="rodada-badge" id="rodadaBadge"></span>
+    </div>
+    <div id="gamesList"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="addManualGame()">+ Jogo Manual</button>
+      <button class="btn btn-secondary" onclick="reloadGames()">🔄 Atualizar da API</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(0)">← Config</button>
+      <button class="btn btn-primary" onclick="goStep(2)">Próximo: Âncoras →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="panel" id="step2">
+    <div class="section-label">Âncoras & Seleção de Jogos</div>
+    <div class="info-box">
+      <strong>⚓ Âncora</strong>: Jogo onde você tem alta confiança — o resultado fica <strong>fixo em todas as 5 múltiplas</strong>.<br>
+      <strong>☑ Usar</strong>: Desmarque jogos que não quer incluir. Você não precisa usar a rodada completa.
+    </div>
+    <div id="anchorsGamesList"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Jogos</button>
+      <button class="btn btn-primary" onclick="generateCombinations()">⚡ Gerar 5 Múltiplas →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="panel" id="step3">
+    <div class="section-label">5 Múltiplas Geradas</div>
+    <div class="summary-bar" id="summaryBar"></div>
+    <div class="combos-grid" id="combosGrid"></div>
+    <div id="coverageInfo"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Ajustar</button>
+      <button class="btn btn-primary" onclick="goStep(4)">📊 Ver Simulação →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="panel" id="step4">
+    <div class="section-label">Simulação Monte Carlo (2.000 rodadas)</div>
+    <div class="stats-grid" id="simStats"></div>
+    <div class="section-label" style="margin-bottom:16px">Detalhamento</div>
+    <div style="overflow-x:auto"><table class="sim-table" id="simTable"></table></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(3)">← Combinações</button>
+      <button class="btn btn-primary" onclick="exportCombos()">💾 Exportar .txt</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let apiFootballKey = '', oddsApiKey = '';
+let games = [], combinations = [];
+const BRASILEIRAO_ID = 71, SEASON = 2026;
+
+// ── API CONNECT ──────────────────────────────────────
+async function saveKeysAndLoad() {
+  apiFootballKey = document.getElementById('apiFootballKey').value.trim();
+  oddsApiKey = document.getElementById('oddsApiKey').value.trim();
+  if (!apiFootballKey && !oddsApiKey) { showStatus('error','Insira pelo menos uma chave de API.'); return; }
+  showStatus('loading','Conectando...');
+  let ok = false;
+  if (apiFootballKey) ok = await loadFromAPIFootball();
+  if (!ok && oddsApiKey) ok = await loadFromOddsAPI();
+  if (ok) { showStatus('success',`✅ ${games.length} jogos carregados!`); setTimeout(()=>goStep(1),800); }
+}
+
+async function loadFromAPIFootball() {
+  try {
+    showStatus('loading','Buscando próximos jogos do Brasileirão...');
+    const res = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${BRASILEIRAO_ID}&season=${SEASON}&next=10`,{headers:{'X-RapidAPI-Key':apiFootballKey,'X-RapidAPI-Host':'api-football-v1.p.rapidapi.com'}});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    let fixtures = data.response || [];
+    if (!fixtures.length) {
+      const r2 = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${BRASILEIRAO_ID}&season=${SEASON}&round=Regular+Season+-+6`,{headers:{'X-RapidAPI-Key':apiFootballKey,'X-RapidAPI-Host':'api-football-v1.p.rapidapi.com'}});
+      const d2 = await r2.json(); fixtures = d2.response || [];
+    }
+    if (!fixtures.length) { showStatus('error','Nenhum jogo encontrado na API-Football.'); return false; }
+    parseAPIFootballGames(fixtures);
+    if (oddsApiKey) await enrichWithOdds();
+    return true;
+  } catch(e) { showStatus('error',`Erro API-Football: ${e.message}`); return false; }
+}
+
+function parseAPIFootballGames(fixtures) {
+  const roundMap = {};
+  fixtures.forEach(f => { const r = f.league.round; if (!roundMap[r]) roundMap[r]=[]; roundMap[r].push(f); });
+  const round = Object.keys(roundMap)[0];
+  document.getElementById('rodadaBadge').textContent = round || '';
+  games = (roundMap[round]||fixtures).map(f => ({
+    id: f.fixture.id, home: f.teams.home.name, away: f.teams.away.name,
+    date: new Date(f.fixture.date).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    oddV:'', oddE:'', oddD:'', bookmakers:[], anchor:false, anchorResult:'V', use:true
+  }));
+}
+
+async function loadFromOddsAPI() {
+  try {
+    showStatus('loading','Buscando odds do Brasileirão...');
+    const res = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_brazil_campeonato/odds/?apiKey=${oddsApiKey}&regions=eu&markets=h2h&oddsFormat=decimal`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data)||!data.length) { showStatus('error','Nenhum jogo retornado pela Odds API.'); return false; }
+    games = data.map(ev => {
+      const o = extractAvgOdds(ev);
+      return { id:ev.id, home:ev.home_team, away:ev.away_team,
+        date: new Date(ev.commence_time).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+        oddV:o.home.toFixed(2), oddE:o.draw.toFixed(2), oddD:o.away.toFixed(2),
+        bookmakers:ev.bookmakers.map(b=>b.title), anchor:false, anchorResult:'V', use:true };
+    });
+    document.getElementById('rodadaBadge').textContent = `${games.length} jogos`;
+    return true;
+  } catch(e) { showStatus('error',`Erro Odds API: ${e.message}`); return false; }
+}
+
+async function enrichWithOdds() {
+  try {
+    showStatus('loading','Enriquecendo com odds das casas...');
+    const res = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_brazil_campeonato/odds/?apiKey=${oddsApiKey}&regions=eu&markets=h2h&oddsFormat=decimal`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const map = {};
+    data.forEach(ev => { map[`${ev.home_team}|${ev.away_team}`] = extractAvgOdds(ev); });
+    games.forEach(g => {
+      const k = `${g.home}|${g.away}`;
+      if (map[k]) { g.oddV=map[k].home.toFixed(2); g.oddE=map[k].draw.toFixed(2); g.oddD=map[k].away.toFixed(2); g.bookmakers=map[k].bookmakers; }
+    });
+  } catch(e) { console.warn('enrichWithOdds:',e); }
+}
+
+function extractAvgOdds(ev) {
+  const h=[],d=[],a=[],bms=[];
+  ev.bookmakers.forEach(bm => {
+    bms.push(bm.title);
+    const mkt = bm.markets.find(m=>m.key==='h2h'); if (!mkt) return;
+    const ho=mkt.outcomes.find(o=>o.name===ev.home_team);
+    const ao=mkt.outcomes.find(o=>o.name===ev.away_team);
+    const dr=mkt.outcomes.find(o=>o.name==='Draw');
+    if(ho)h.push(ho.price); if(ao)a.push(ao.price); if(dr)d.push(dr.price);
+  });
+  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
+  return {home:avg(h)||2.5, draw:avg(d)||3.2, away:avg(a)||3.0, bookmakers:bms};
+}
+
+// ── DEMO ────────────────────────────────────────────
+function loadDemo() {
+  games = [
+    {id:1,home:'Botafogo',away:'Flamengo',date:'Sáb 14/03 20h30',oddV:'2.80',oddE:'3.20',oddD:'2.10',bookmakers:['Bet365','Betway','Pinnacle'],anchor:false,anchorResult:'V',use:true},
+    {id:2,home:'Palmeiras',away:'Mirassol',date:'Dom 15/03 18h30',oddV:'1.45',oddE:'4.50',oddD:'7.00',bookmakers:['Bet365','Betway'],anchor:false,anchorResult:'V',use:true},
+    {id:3,home:'Cruzeiro',away:'Vasco',date:'Dom 15/03 20h30',oddV:'1.90',oddE:'3.30',oddD:'5.33',bookmakers:['Bet365','Pinnacle'],anchor:false,anchorResult:'V',use:true},
+    {id:4,home:'Coritiba',away:'Remo',date:'Dom 15/03 18h30',oddV:'1.75',oddE:'3.50',oddD:'5.10',bookmakers:['Bet365','Betway'],anchor:false,anchorResult:'V',use:true},
+    {id:5,home:'Vitória',away:'Atlético-MG',date:'Sáb 14/03 18h30',oddV:'3.20',oddE:'3.10',oddD:'2.68',bookmakers:['Bet365','Betway','Pinnacle'],anchor:false,anchorResult:'V',use:true},
+    {id:6,home:'Santos',away:'Corinthians',date:'Sáb 14/03 16h00',oddV:'2.20',oddE:'3.20',oddD:'3.40',bookmakers:['Bet365'],anchor:false,anchorResult:'V',use:true},
+    {id:7,home:'Chapecoense',away:'Grêmio',date:'Seg 16/03 20h00',oddV:'2.90',oddE:'3.00',oddD:'2.47',bookmakers:['Bet365','Betway'],anchor:false,anchorResult:'V',use:true},
+  ];
+  document.getElementById('rodadaBadge').textContent = 'RODADA 6 — DEMO';
+  showStatus('success','✅ Modo demo ativo com 7 jogos da rodada 6');
+  setTimeout(()=>goStep(1),600);
+}
+
+function showStatus(t,msg){const el=document.getElementById('apiStatus');const c={loading:'#5a6a82',success:'var(--accent)',error:'var(--loss)'};const i={loading:'⏳',success:'✅',error:'❌'};el.innerHTML=`<div style="font-size:.85rem;color:${c[t]};margin-top:4px">${i[t]} ${msg}</div>`;}
+
+// ── STEP 1 ───────────────────────────────────────────
+function renderGamesList() {
+  const el = document.getElementById('gamesList');
+  if (!games.length) { el.innerHTML='<div style="color:var(--muted);padding:16px 0">Nenhum jogo carregado.</div>'; return; }
+  el.innerHTML = games.map((g,i)=>`
+    <div class="game-card">
+      <div class="game-header">
+        <span class="game-idx">#${i+1}</span>
+        <span style="font-size:.72rem;color:var(--muted)">📅 ${g.date||''}</span>
+        ${g.bookmakers?.length?`<div class="bm-grid">${g.bookmakers.slice(0,4).map(b=>`<span class="bm-tag active">${b}</span>`).join('')}</div>`:''}
+      </div>
+      <div class="teams-row">
+        <input class="team-name-input" value="${g.home}" onchange="updateGame(${JSON.stringify(g.id)},'home',this.value)" placeholder="Mandante">
+        <div class="vs-badge">VS</div>
+        <input class="team-name-input" value="${g.away}" onchange="updateGame(${JSON.stringify(g.id)},'away',this.value)" placeholder="Visitante">
+      </div>
+      ${g.oddV?`<div style="display:flex;gap:12px;margin-top:10px;align-items:center">
+        <div style="text-align:center"><div style="font-size:.6rem;color:var(--muted);margin-bottom:3px">V</div><span class="odd-badge odd-V">${g.oddV}</span></div>
+        <div style="text-align:center"><div style="font-size:.6rem;color:var(--muted);margin-bottom:3px">E</div><span class="odd-badge odd-E">${g.oddE}</span></div>
+        <div style="text-align:center"><div style="font-size:.6rem;color:var(--muted);margin-bottom:3px">D</div><span class="odd-badge odd-D">${g.oddD}</span></div>
+        <div style="font-size:.7rem;color:var(--muted);margin-left:4px">odds médias</div>
+      </div>`:`<div style="font-size:.75rem;color:var(--muted);margin-top:8px">Odds não encontradas — preencha na etapa seguinte.</div>`}
+    </div>`).join('');
+}
+
+function addManualGame(){games.push({id:Date.now(),home:'',away:'',date:'',oddV:'',oddE:'',oddD:'',bookmakers:[],anchor:false,anchorResult:'V',use:true});renderGamesList();}
+async function reloadGames(){games=[];if(apiFootballKey)await loadFromAPIFootball();else if(oddsApiKey)await loadFromOddsAPI();else{showToast('Configure as APIs primeiro!',true);goStep(0);return;}renderGamesList();}
+function updateGame(id,f,v){const g=games.find(g=>g.id===id);if(g)g[f]=v;}
+
+// ── STEP 2 ───────────────────────────────────────────
+function renderAnchorsStep() {
+  document.getElementById('anchorsGamesList').innerHTML = games.map((g,i)=>`
+    <div class="game-card ${g.anchor?'anchor':''}" style="opacity:${g.use?1:.45}">
+      <div class="game-header">
+        <span class="game-idx">#${i+1}</span>
+        <strong style="flex:1;font-size:.92rem">${g.home||'Mandante'} <span style="color:var(--muted)">vs</span> ${g.away||'Visitante'}</strong>
+        <span class="anchor-badge">⚓ ÂNCORA</span>
+      </div>
+      <div class="odds-row">
+        <div class="odd-field"><label>VITÓRIA (V)</label><input type="number" step="0.01" min="1" value="${g.oddV}" placeholder="1.80" onchange="updateGame(${JSON.stringify(g.id)},'oddV',parseFloat(this.value)||'')"></div>
+        <div class="odd-field"><label>EMPATE (E)</label><input type="number" step="0.01" min="1" value="${g.oddE}" placeholder="3.40" onchange="updateGame(${JSON.stringify(g.id)},'oddE',parseFloat(this.value)||'')"></div>
+        <div class="odd-field"><label>DERROTA (D)</label><input type="number" step="0.01" min="1" value="${g.oddD}" placeholder="4.50" onchange="updateGame(${JSON.stringify(g.id)},'oddD',parseFloat(this.value)||'')"></div>
+      </div>
+      ${g.anchor?`<div style="margin-top:10px"><div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Resultado fixo:</div>
+        <div class="anchor-result-row">
+          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'V')" style="color:var(--win);border-color:${g.anchorResult==='V'?'var(--win)':'var(--border)'};background:${g.anchorResult==='V'?'rgba(0,229,160,0.1)':'transparent'}">✓ VITÓRIA</button>
+          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'E')" style="color:var(--draw);border-color:${g.anchorResult==='E'?'var(--draw)':'var(--border)'};background:${g.anchorResult==='E'?'rgba(255,209,102,0.1)':'transparent'}">= EMPATE</button>
+          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'D')" style="color:var(--loss);border-color:${g.anchorResult==='D'?'var(--loss)':'var(--border)'};background:${g.anchorResult==='D'?'rgba(239,71,111,0.1)':'transparent'}">✗ DERROTA</button>
+        </div></div>`:''}
+      <div class="card-actions">
+        <label class="toggle-label use"><input type="checkbox" ${g.use?'checked':''} onchange="toggleUse(${JSON.stringify(g.id)},this.checked)"><div class="toggle-dot"></div><span>☑ Usar</span></label>
+        <label class="toggle-label anc"><input type="checkbox" ${g.anchor?'checked':''} onchange="toggleAnchor(${JSON.stringify(g.id)},this.checked)"><div class="toggle-dot"></div><span>⚓ Âncora</span></label>
+      </div>
+    </div>`).join('');
+}
+
+function toggleUse(id,v){const g=games.find(g=>g.id===id);if(g){g.use=v;renderAnchorsStep();}}
+function toggleAnchor(id,v){const g=games.find(g=>g.id===id);if(g){g.anchor=v;renderAnchorsStep();}}
+function setAnchorResult(id,r){const g=games.find(g=>g.id===id);if(g){g.anchorResult=r;renderAnchorsStep();}}
+
+// ── MATH ENGINE ──────────────────────────────────────
+function oddToProb(o){return(!o||o<=1)?0.33:1/parseFloat(o);}
+function normProbs(v,e,d){const s=v+e+d;return s?[v/s,e/s,d/s]:[0.4,0.3,0.3];}
+function combProb(combo,gs){return combo.reduce((p,r,i)=>{const g=gs[i];const[nV,nE,nD]=normProbs(oddToProb(g.oddV),oddToProb(g.oddE),oddToProb(g.oddD));return p*(r==='V'?nV:r==='E'?nE:nD);},1);}
+function combOdd(combo,gs){return combo.reduce((o,r,i)=>{const g=gs[i];return o*(parseFloat(r==='V'?g.oddV:r==='E'?g.oddE:g.oddD)||3);},1);}
+function hamming(a,b){return a.filter((v,i)=>v!==b[i]).length;}
+
+function generateCombinations() {
+  const used = games.filter(g=>g.use);
+  if (used.length < 2) { showToast('Selecione pelo menos 2 jogos!',true); return; }
+  const ancs = used.filter(g=>g.anchor), nonancs = used.filter(g=>!g.anchor);
+  const RES = ['V','E','D'];
+  function gen(n){if(!n)return[[]];return RES.flatMap(r=>gen(n-1).map(s=>[r,...s]));}
+  const all = nonancs.length<=7 ? gen(nonancs.length) : Array.from({length:700},()=>Array.from({length:nonancs.length},()=>RES[Math.floor(Math.random()*3)]));
+  const buildFull = c => used.map(g=>g.anchor?g.anchorResult:c[nonancs.indexOf(g)]);
+  const scored = all.map(c=>{const full=buildFull(c);const prob=combProb(full,used);const odd=combOdd(full,used);return{c,full,prob,odd,ev:prob*odd,used};}).sort((a,b)=>b.ev-a.ev);
+  const chosen=[scored[0]];
+  const minD=Math.max(1,Math.floor(used.length*0.35));
+  for(const cand of scored){if(chosen.length>=5)break;if(Math.min(...chosen.map(x=>hamming(cand.full,x.full)))>=minD)chosen.push(cand);}
+  for(const cand of scored){if(chosen.length>=5)break;if(!chosen.includes(cand))chosen.push(cand);}
+  combinations=chosen.slice(0,5);
+  renderCombinations();
+  goStep(3);
+}
+
+function renderCombinations() {
+  const used = combinations[0]?.used || games.filter(g=>g.use);
+  const maxOdd=Math.max(...combinations.map(c=>c.odd));
+  const avgProb=combinations.reduce((s,c)=>s+c.prob,0)/combinations.length;
+  document.getElementById('summaryBar').innerHTML=`
+    <div class="sum-item"><div class="sum-label">Múltiplas</div><div class="sum-val">${combinations.length}</div></div>
+    <div class="divider"></div>
+    <div class="sum-item"><div class="sum-label">Investimento</div><div class="sum-val green">R$ ${combinations.length},00</div></div>
+    <div class="divider"></div>
+    <div class="sum-item"><div class="sum-label">Maior Odd</div><div class="sum-val blue">${maxOdd.toFixed(2)}x</div></div>
+    <div class="divider"></div>
+    <div class="sum-item"><div class="sum-label">Retorno Máx</div><div class="sum-val orange">R$ ${maxOdd.toFixed(2)}</div></div>
+    <div class="divider"></div>
+    <div class="sum-item"><div class="sum-label">Prob. Média</div><div class="sum-val">${(avgProb*100).toFixed(3)}%</div></div>`;
+  const bestEV=Math.max(...combinations.map(c=>c.ev));
+  document.getElementById('combosGrid').innerHTML=combinations.map((c,i)=>`
+    <div class="combo-card ${c.ev===bestEV?'best':''}">
+      <div class="combo-num">MÚLTIPLA ${i+1} ${c.ev===bestEV?'<span class="best-tag">MELHOR EV</span>':''}</div>
+      <div class="combo-sequence">${c.full.map((r,j)=>`
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div style="font-size:.55rem;color:var(--muted);font-family:'JetBrains Mono',monospace;max-width:26px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${(used[j]?.home||'').slice(0,4)}</div>
+          <div class="res-badge res-${r}">${r}</div>
+        </div>`).join('')}</div>
+      <div class="combo-stats">ODD: <span>${c.odd.toFixed(2)}x</span><br>PROB: <span>${(c.prob*100).toFixed(4)}%</span><br>EV: <span style="color:${c.ev>=1?'var(--win)':'var(--loss)'}">${c.ev.toFixed(4)}</span><br>RETORNO: <span>R$ ${c.odd.toFixed(2)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${Math.min(100,c.prob*8000)}%"></div></div>
+    </div>`).join('');
+  document.getElementById('coverageInfo').innerHTML=`<div class="info-box">📊 <strong>${used.length} jogos</strong> · ⚓ <strong>${used.filter(g=>g.anchor).length} âncora(s)</strong> · 🎯 <strong>${new Set(combinations.map(c=>c.full.join(''))).size} padrões distintos</strong> cobertos</div>`;
+}
+
+// ── SIMULATION ───────────────────────────────────────
+function renderSimulation() {
+  const used = combinations[0]?.used || games.filter(g=>g.use);
+  const N=2000; let wins=0,totalRet=0;
+  for(let r=0;r<N;r++){
+    const outcome=used.map(g=>{const[nV,nE,nD]=normProbs(oddToProb(g.oddV),oddToProb(g.oddE),oddToProb(g.oddD));const x=Math.random();return x<nV?'V':x<nV+nE?'E':'D';});
+    let ret=0; combinations.forEach(c=>{if(c.full.every((r,i)=>r===outcome[i]))ret+=c.odd;});
+    totalRet+=ret-combinations.length; if(ret>0)wins++;
+  }
+  const wr=(wins/N*100).toFixed(1), roi=((totalRet/N)/combinations.length*100).toFixed(2);
+  document.getElementById('simStats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Taxa de Acerto</div><div class="stat-value ${wins/N>0.05?'green':''}">${wr}%</div></div>
+    <div class="stat-card"><div class="stat-label">ROI Médio</div><div class="stat-value ${roi>0?'green':'orange'}">${roi}%</div></div>
+    <div class="stat-card"><div class="stat-label">Retorno Médio</div><div class="stat-value blue">R$ ${((totalRet/N)+combinations.length).toFixed(3)}</div></div>
+    <div class="stat-card"><div class="stat-label">Simulações</div><div class="stat-value">${N.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Jogos</div><div class="stat-value orange">${used.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Âncoras</div><div class="stat-value">${used.filter(g=>g.anchor).length}</div></div>`;
+  document.getElementById('simTable').innerHTML=`
+    <thead><tr><th>#</th><th>MÚLTIPLA</th><th>SEQUÊNCIA</th><th>ODD</th><th>PROB.</th><th>RETORNO</th><th>EV</th></tr></thead>
+    <tbody>${combinations.map((c,i)=>`<tr>
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace">${i+1}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--accent3)">MÚLTIPLA ${i+1}</td>
+      <td><div style="display:flex;gap:3px">${c.full.map(r=>`<div class="res-badge res-${r}" style="width:22px;height:22px;font-size:.78rem">${r}</div>`).join('')}</div></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:600">${c.odd.toFixed(2)}x</td>
+      <td style="font-family:'JetBrains Mono',monospace">${(c.prob*100).toFixed(5)}%</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${c.odd>=10?'var(--win)':c.odd>=3?'var(--draw)':'var(--loss)'}">R$ ${c.odd.toFixed(2)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:${c.ev>=1?'var(--win)':'var(--loss)'}">${c.ev.toFixed(4)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr style="border-top:2px solid var(--border)"><td colspan="3" style="color:var(--muted);font-size:.78rem;padding-top:12px">TOTAL INVESTIDO</td><td colspan="4" style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--accent);padding-top:12px">R$ ${combinations.length},00</td></tr></tfoot>`;
+}
+
+// ── NAVIGATION ───────────────────────────────────────
+function goStep(n) {
+  if(n>0&&!games.length){showToast('Carregue os jogos primeiro!',true);return;}
+  if(n===3&&!combinations.length){generateCombinations();return;}
+  if(n===4&&!combinations.length){showToast('Gere as combinações primeiro!',true);return;}
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`step${n}`).classList.add('active');
+  document.querySelectorAll('.step').forEach(s=>{const sn=parseInt(s.dataset.step);s.classList.toggle('active',sn===n);s.classList.toggle('done',sn<n);});
+  if(n===1)renderGamesList();
+  if(n===2)renderAnchorsStep();
+  if(n===4)renderSimulation();
+}
+
+// ── EXPORT ───────────────────────────────────────────
+function exportCombos() {
+  const used=combinations[0]?.used||games.filter(g=>g.use);
+  let txt=`BETBOT BRASILEIRÃO — MÚLTIPLAS\nGerado: ${new Date().toLocaleString('pt-BR')}\n\n`;
+  txt+=`JOGOS:\n${used.map((g,i)=>`  ${i+1}. ${g.home} vs ${g.away}  V:${g.oddV} E:${g.oddE} D:${g.oddD}`).join('\n')}\n\n`;
+  combinations.forEach((c,i)=>{
+    txt+=`MÚLTIPLA ${i+1} (ODD: ${c.odd.toFixed(2)}x | Retorno: R$ ${c.odd.toFixed(2)}):\n`;
+    c.full.forEach((r,j)=>{const g=used[j];txt+=`  ${g.home} vs ${g.away} → ${r==='V'?`VITÓRIA ${g.home}`:r==='E'?'EMPATE':`VITÓRIA ${g.away}`}\n`;});
+    txt+=`  Probabilidade: ${(c.prob*100).toFixed(5)}%\n\n`;
+  });
+  txt+=`TOTAL: R$ ${combinations.length},00 investidos`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download='multiplas-brasileirao.txt';a.click();
+  showToast('Múltiplas exportadas!');
+}
+
+function showToast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(err?' error':'');setTimeout(()=>t.className='toast',3000);}
+</script>
+</body>
+</html>
