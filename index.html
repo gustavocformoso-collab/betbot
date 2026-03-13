@@ -403,45 +403,44 @@ function updateGame(id,f,v){const g=games.find(g=>g.id===id);if(g)g[f]=v;}
 
 // ── STEP 2 ───────────────────────────────────────────
 function renderAnchorsStep() {
-  document.getElementById('anchorsGamesList').innerHTML = games.map((g,i)=>`
-    <div class="game-card ${g.anchor?'anchor':''}" style="opacity:${g.use?1:.45}">
+  document.getElementById('anchorsGamesList').innerHTML = games.map((g,i) => {
+    const anchorBtns = g.anchor ? `
+      <div style="margin-top:10px">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Resultado fixo:</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="setAnchorResult(${i},'V')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='V'?'var(--win)':'var(--border)'};background:${g.anchorResult==='V'?'rgba(0,229,160,0.15)':'transparent'};color:var(--win)">✓ VITÓRIA</button>
+          <button onclick="setAnchorResult(${i},'E')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='E'?'var(--draw)':'var(--border)'};background:${g.anchorResult==='E'?'rgba(255,209,102,0.15)':'transparent'};color:var(--draw)">= EMPATE</button>
+          <button onclick="setAnchorResult(${i},'D')" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:1rem;border:1px solid ${g.anchorResult==='D'?'var(--loss)':'var(--border)'};background:${g.anchorResult==='D'?'rgba(239,71,111,0.15)':'transparent'};color:var(--loss)">✗ DERROTA</button>
+        </div>
+      </div>` : '';
+    return `
+    <div class="game-card ${g.anchor?'anchor':''}" style="opacity:${g.use?1:.4}">
       <div class="game-header">
         <span class="game-idx">#${i+1}</span>
         <strong style="flex:1;font-size:.92rem">${g.home||'Mandante'} <span style="color:var(--muted)">vs</span> ${g.away||'Visitante'}</strong>
         <span class="anchor-badge">⚓ ÂNCORA</span>
       </div>
       <div class="odds-row">
-        <div class="odd-field"><label>VITÓRIA (V)</label><input type="number" step="0.01" min="1" value="${g.oddV}" placeholder="1.80" onchange="updateGame(${JSON.stringify(g.id)},'oddV',parseFloat(this.value)||'')"></div>
-        <div class="odd-field"><label>EMPATE (E)</label><input type="number" step="0.01" min="1" value="${g.oddE}" placeholder="3.40" onchange="updateGame(${JSON.stringify(g.id)},'oddE',parseFloat(this.value)||'')"></div>
-        <div class="odd-field"><label>DERROTA (D)</label><input type="number" step="0.01" min="1" value="${g.oddD}" placeholder="4.50" onchange="updateGame(${JSON.stringify(g.id)},'oddD',parseFloat(this.value)||'')"></div>
+        <div class="odd-field"><label>VITÓRIA (V)</label><input type="number" step="0.01" min="1" value="${g.oddV}" placeholder="1.80" oninput="games[${i}].oddV=this.value"></div>
+        <div class="odd-field"><label>EMPATE (E)</label><input type="number" step="0.01" min="1" value="${g.oddE}" placeholder="3.40" oninput="games[${i}].oddE=this.value"></div>
+        <div class="odd-field"><label>DERROTA (D)</label><input type="number" step="0.01" min="1" value="${g.oddD}" placeholder="4.50" oninput="games[${i}].oddD=this.value"></div>
       </div>
-      ${g.anchor?`<div style="margin-top:10px"><div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Resultado fixo:</div>
-        <div class="anchor-result-row">
-          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'V')" style="color:var(--win);border-color:${g.anchorResult==='V'?'var(--win)':'var(--border)'};background:${g.anchorResult==='V'?'rgba(0,229,160,0.1)':'transparent'}">✓ VITÓRIA</button>
-          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'E')" style="color:var(--draw);border-color:${g.anchorResult==='E'?'var(--draw)':'var(--border)'};background:${g.anchorResult==='E'?'rgba(255,209,102,0.1)':'transparent'}">= EMPATE</button>
-          <button onclick="setAnchorResult(${JSON.stringify(g.id)},'D')" style="color:var(--loss);border-color:${g.anchorResult==='D'?'var(--loss)':'var(--border)'};background:${g.anchorResult==='D'?'rgba(239,71,111,0.1)':'transparent'}">✗ DERROTA</button>
-        </div></div>`:''}
-      <div class="card-actions">
-        <button onclick="toggleUse(${JSON.stringify(g.id)})" id="use-btn-${g.id}" style="padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid ${g.use?'var(--accent)':'var(--border)'};background:${g.use?'rgba(0,229,160,0.12)':'transparent'};color:${g.use?'var(--accent)':'var(--muted)'}">${g.use?'✅ Usando':'⬜ Ignorar'}</button>
-        <button onclick="toggleAnchor(${JSON.stringify(g.id)})" style="padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid ${g.anchor?'var(--accent2)':'var(--border)'};background:${g.anchor?'rgba(255,107,53,0.12)':'transparent'};color:${g.anchor?'var(--accent2)':'var(--muted)'}">${g.anchor?'⚓ Âncora ON':'⚓ Âncora'}</button>
+      ${anchorBtns}
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button onclick="setUse(${i},${!g.use})" style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.use?'var(--accent)':'var(--border)'};background:${g.use?'rgba(0,229,160,0.12)':'transparent'};color:${g.use?'var(--accent)':'var(--muted)'}">
+          ${g.use?'✅ Usando':'⬜ Ignorar'}
+        </button>
+        <button onclick="setAnchor(${i},${!g.anchor})" style="padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;border:1px solid ${g.anchor?'var(--accent2)':'var(--border)'};background:${g.anchor?'rgba(255,107,53,0.12)':'transparent'};color:${g.anchor?'var(--accent2)':'var(--muted)'}">
+          ${g.anchor?'⚓ Âncora ON':'⚓ Âncora'}
+        </button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function toggleUse(id){
-  const g=games.find(g=>g.id===id); if(!g) return;
-  g.use=!g.use;
-  const btn=document.getElementById('use-btn-'+id);
-  if(btn){btn.style.borderColor=g.use?'var(--accent)':'var(--border)';btn.style.background=g.use?'rgba(0,229,160,0.12)':'transparent';btn.style.color=g.use?'var(--accent)':'var(--muted)';btn.textContent=g.use?'✅ Usando':'⬜ Ignorar';}
-  const card=btn&&btn.closest('.game-card');
-  if(card)card.style.opacity=g.use?'1':'0.4';
-}
-function toggleAnchor(id){
-  const g=games.find(g=>g.id===id); if(!g) return;
-  g.anchor=!g.anchor;
-  renderAnchorsStep();
-}
-function setAnchorResult(id,r){const g=games.find(g=>g.id===id);if(g){g.anchorResult=r;renderAnchorsStep();}}
+function setUse(i, val) { games[i].use = val; renderAnchorsStep(); }
+function setAnchor(i, val) { games[i].anchor = val; renderAnchorsStep(); }
+function setAnchorResult(i, r) { games[i].anchorResult = r; renderAnchorsStep(); }
 
 // ── MATH ENGINE ──────────────────────────────────────
 function oddToProb(o){return(!o||o<=1)?0.33:1/parseFloat(o);}
